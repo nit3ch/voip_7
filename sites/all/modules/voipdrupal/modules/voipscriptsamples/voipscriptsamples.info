@@ -1,0 +1,17 @@
+core = 7.x
+description = "Provides sample scripts that demonstrate the capabilities of the VoIP Drupal platform."
+name = "VoIP Script Samples"
+package = "VoIP Drupal"
+project = "voipscriptsamples"
+
+dependencies[] = "voipcall"
+
+files[] = includes/class.xml.parser.php
+files[] = includes/voipscriptsamples_weather.inc
+
+; Information added by drupal.org packaging script on 2012-06-13
+version = "7.x-1.x-dev"
+core = "7.x"
+project = "voipdrupal"
+datestamp = "1339548531"
+

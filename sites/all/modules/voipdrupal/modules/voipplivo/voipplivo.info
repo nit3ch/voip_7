@@ -1,0 +1,18 @@
+name = "VoIP Plivo"
+description = "Allows the VoIP Drupal platform to work with the Plivo communications framework."
+package = VoIP Drupal
+core = 7.x
+
+dependencies[] = voip
+dependencies[] = voipcall
+
+files[] = includes/plivo.php
+files[] = includes/voipplivo.inc
+files[] = includes/voipplivoserver.inc
+
+; Information added by drupal.org packaging script on 2012-06-13
+version = "7.x-1.x-dev"
+core = "7.x"
+project = "voipdrupal"
+datestamp = "1339548531"
+
