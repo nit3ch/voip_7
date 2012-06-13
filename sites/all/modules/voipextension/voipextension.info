@@ -1,0 +1,13 @@
+; $Id$
+name = VoIP Extension
+description = Provides a common VoIP Extension API.
+package = VoIP Drupal
+core = 6.x
+dependencies[] = voipcall
+
+; Information added by drupal.org packaging script on 2012-02-23
+version = "6.x-1.0-beta1"
+core = "6.x"
+project = "voipextension"
+datestamp = "1329976246"
+
