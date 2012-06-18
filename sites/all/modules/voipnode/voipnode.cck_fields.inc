@@ -22,21 +22,10 @@
 function _voipnode_change_audio_fields_status($node_type, $status = 1) {
   $fields = _voipnode_audio_fields_definitions();
   foreach ($fields as $key => $field) {
-    db_update('field_config')
-  ->fields(array('active' => 1))
-  ->condition('field_name',$field['field_name'])
-  ->condition('module' , filefield)
-  ->execute();
-/**
-  db_update('field_config_instance')
-  ->fields(array('widget_active' => 1))
-  ->condition('field_name',$field['field_name'])
-  ->condition('type_name' , $node_type)
-  ->condition('widget_module',  audiofield)
-  ->execute();
-  */
+    db_query("UPDATE {". content_field_tablename() ."} SET active = %d WHERE field_name = '%s' AND module = '%s'", $status, $field['field_name'], 'filefield');
+    db_query("UPDATE {". content_instance_tablename() ."} SET widget_active = %d WHERE field_name = '%s' AND type_name = '%s' AND widget_module = '%s'", $status, $field['field_name'], $node_type, 'audiofield');
   }
-   field_cache_clear();
+  content_clear_type_cache(TRUE);
 } 
 
 /**

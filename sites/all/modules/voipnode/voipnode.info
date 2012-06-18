@@ -1,25 +1,17 @@
 name = VoIP Node
 package = VoIP Drupal
 description = Provides VoIP Extensions to CCK content types
-;dependencies[] = cck
+dependencies[] = content
 dependencies[] = audiofield
+dependencies[] = fieldgroup
 dependencies[] = views
 dependencies[] = voipcall
 dependencies[] = voipextension
-core = 7.x
-files[]= voipnode.admin.inc
-files[]= voipnode.admin.js
-files[]= voipnode.cck_filds.inc
-files[]= voipnode.install
-files[]= voipnode.module
-files[]= voipnode.script.inc
-files[]= views/voipnode.theme.inc
-files[]= views/voipnode.views.inc
-files[]= views/voipnode.views_default.inc
+core = 6.x
 
-; Information added by drupal.org packaging script on 2012-02-23
-version = "7.x-1.0-beta1"
-core = "7.x"
+; Information added by drupal.org packaging script on 2012-02-29
+version = "6.x-1.0-beta1+2-dev"
+core = "6.x"
 project = "voipnode"
-datestamp = "1329975347"
+datestamp = "1330476375"
 

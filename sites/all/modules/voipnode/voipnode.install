@@ -14,7 +14,7 @@ function voipnode_uninstall() {
   variable_del('voipnode_valid_script_names');
   variable_del('voipnode_default_script_name');
   variable_del('voipnode_default_extension_status');
-  $node_types = node_type_get_types();
+  $node_types = node_get_types();
   foreach ($node_types as $node_type => $type_details) {
     variable_del('voipnode_use_' . $node_type);
     variable_del('voipnode_default_script_name_' . $node_type);
