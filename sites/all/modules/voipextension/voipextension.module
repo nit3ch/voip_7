@@ -40,9 +40,10 @@ function voipextension_voipscript_load_script($script_name, $params = NULL) {
 function voipextension_voipscript_get_script_names() {
   return array(
     'voipextension_basic_menu',
-    // "voipextension_play_extension" is an internal script. It's not meant to
-    // to be directly called by other modules as part of their voip extensions."
-    //  'voipextension_play_extension',
+    // play extension is an api script that needs to be called with the 'eid'.
+    // It's in the drop down for site administrators to select for example in
+    // voipviews.
+    'voipextension_play_extension',
     'voipextension_directory',
   );
 }

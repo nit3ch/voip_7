@@ -1,0 +1,65 @@
+diff --git a/sites/all/modules/voipextension/voipextension.info b/sites/all/modules/voipextension/voipextension.info
+index daee8d9..63a1663 100644
+--- a/sites/all/modules/voipextension/voipextension.info
++++ b/sites/all/modules/voipextension/voipextension.info
+@@ -2,12 +2,15 @@
+ name = VoIP Extension
+ description = Provides a common VoIP Extension API.
+ package = VoIP Drupal
+-core = 6.x
++core = 7.x
+ dependencies[] = voipcall
++files[]= voipextension.install
++files[]= voipextension.script.inc
++files[]= views/voipextension.views.inc
++files[]= views/voipextension.views_default.inc	
+ 
+-; Information added by drupal.org packaging script on 2012-02-23
+-version = "6.x-1.0-beta1"
+-core = "6.x"
++; Information added by drupal.org packaging script on 2012-04-19
++version = "7.x-1.0-beta1+1-dev"
++core = "7.x"
+ project = "voipextension"
+-datestamp = "1329976246"
+ 
+diff --git a/sites/all/modules/voipextension/voipextension.install b/sites/all/modules/voipextension/voipextension.install
+index 37454c6..da4ffd7 100644
+--- a/sites/all/modules/voipextension/voipextension.install
++++ b/sites/all/modules/voipextension/voipextension.install
+@@ -93,7 +93,7 @@ function voipextension_schema() {
+ 
+   return $schema;
+ }
+-
++/**
+ function voipextension_install() {
+   drupal_install_schema('voipextension');
+ }
+@@ -102,7 +102,7 @@ function voipextension_uninstall() {
+   drupal_uninstall_schema('voipextension');
+   variable_del('voipextension_insertid');
+ }
+-
++*/
+ /**
+  * alpha-1 upgrade.
+  *
+diff --git a/sites/all/modules/voipextension/voipextension.module b/sites/all/modules/voipextension/voipextension.module
+index 0ecd5ab..2a431f8 100644
+--- a/sites/all/modules/voipextension/voipextension.module
++++ b/sites/all/modules/voipextension/voipextension.module
+@@ -40,9 +40,10 @@ function voipextension_voipscript_load_script($script_name, $params = NULL) {
+ function voipextension_voipscript_get_script_names() {
+   return array(
+     'voipextension_basic_menu',
+-    // "voipextension_play_extension" is an internal script. It's not meant to
+-    // to be directly called by other modules as part of their voip extensions."
+-    //  'voipextension_play_extension',
++    // play extension is an api script that needs to be called with the 'eid'.
++    // It's in the drop down for site administrators to select for example in
++    // voipviews.
++    'voipextension_play_extension',
+     'voipextension_directory',
+   );
+ }

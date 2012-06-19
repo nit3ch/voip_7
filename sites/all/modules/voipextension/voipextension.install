@@ -93,7 +93,7 @@ function voipextension_schema() {
 
   return $schema;
 }
-
+/**
 function voipextension_install() {
   drupal_install_schema('voipextension');
 }
@@ -102,7 +102,7 @@ function voipextension_uninstall() {
   drupal_uninstall_schema('voipextension');
   variable_del('voipextension_insertid');
 }
-
+*/
 /**
  * alpha-1 upgrade.
  *

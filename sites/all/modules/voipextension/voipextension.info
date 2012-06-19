@@ -2,12 +2,15 @@
 name = VoIP Extension
 description = Provides a common VoIP Extension API.
 package = VoIP Drupal
-core = 6.x
+core = 7.x
 dependencies[] = voipcall
+files[]= voipextension.install
+files[]= voipextension.script.inc
+files[]= views/voipextension.views.inc
+files[]= views/voipextension.views_default.inc	
 
-; Information added by drupal.org packaging script on 2012-02-23
-version = "6.x-1.0-beta1"
-core = "6.x"
+; Information added by drupal.org packaging script on 2012-04-19
+version = "7.x-1.0-beta1+1-dev"
+core = "7.x"
 project = "voipextension"
-datestamp = "1329976246"
 
