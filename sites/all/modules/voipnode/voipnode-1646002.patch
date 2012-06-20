@@ -1,0 +1,262 @@
+diff --git a/sites/all/modules/voipnode/voipnode.admin.inc b/sites/all/modules/voipnode/voipnode.admin.inc
+index 40e2b76..d070d53 100644
+--- a/sites/all/modules/voipnode/voipnode.admin.inc
++++ b/sites/all/modules/voipnode/voipnode.admin.inc
+@@ -16,20 +16,20 @@ function voipnode_admin_settings() {
+     '#type' => 'checkboxes',
+     '#options' => VoipScript::getScriptNames(),
+     '#default_value' => variable_get('voipnode_valid_script_names', array()),
+-    '#description' => t('Scripts that will be available for VoIP nodes. You can select multiple scripts. If none are selected all will be available.'),
++    '#description' => t('Scripts that will be available for VoIP nodes. You can select multiple scripts.'),
+   );
+   $form['voipnode_default_script_name'] = array(
+     '#title' => t('Default script'),
+     '#type' => 'select',
+     '#options' => VoipScript::getScriptNames(),
+-    '#default_value' => voipnode_default_script(FALSE, TRUE),
++    '#default_value' => variable_get('voipnode_default_script_name', ''),
+     '#description' => t('The script, of those valid, that will be used by default.'),
+   );
+   $form['voipnode_default_extension_status'] = array(
+     '#type' => 'checkbox',
+     '#title' => t('Listed'),
+     '#description' => t('The default setting for if the extension is listed in a directory.'),
+-    '#default_value' => voipnode_default_status(),
++    '#default_value' => variable_get('voipnode_default_extension_status', 0),
+     '#return_value' => 1,
+   );
+   $form['array_filter'] = array('#type' => 'hidden');
+@@ -56,7 +56,7 @@ function voipnode_admin_settings_submit(&$form, &$form_state) {
+  * Menu callback; confirmation form for reindexing extensions to nodes by content-type.
+  */
+ function voipnode_admin_reindex_confirm_form($form_state) {
+-  $types = node_get_types();
++  $types = node_type_get_types();
+   $options = array();
+   foreach ($types as $node_type => $type_details) {
+     if (variable_get('voipnode_use_' . $node_type, FALSE)) {
+@@ -125,9 +125,9 @@ function _voipnode_admin_reindex_batch($content_type, &$context) {
+   $result = db_query_range("SELECT nid FROM {node} WHERE nid > %d AND type = '%s' ORDER BY nid ASC", $context['sandbox']['current_node'], $content_type, 0, $limit);
+   while ($row = db_fetch_array($result)) {
+     $node = node_load($row['nid'], NULL, TRUE);
+-    $node->voipextension_listed = voipnode_default_status($content_type);
+-    $node->voipextension_script = voipnode_default_script($content_type, TRUE);
+-    // We only need our part of the hook_nodeapi.
++    $node->voipextension_listed = variable_get('voipnode_default_extension_status_'. $content_type, variable_get('voipnode_default_extension_status', 0));
++    $node->voipextension_script = variable_get('voipnode_default_script_name_'. $content_type, variable_get('voipnode_default_script_name',''));
++    // we only need our part of the hook_nodeapi
+     voipnode_nodeapi($node, 'update');
+     $context['sandbox']['progress']++;
+     $context['sandbox']['current_node'] = $row['nid'];
+@@ -207,20 +207,20 @@ function _voipnode_form_node_type_form_alter(&$form, &$form_state) {
+     ),
+   );
+ 
+-  $default_script_name = voipnode_default_script($content_type, TRUE);
++  $default_script_name = variable_get('voipnode_default_script_name_'. $content_type, variable_get('voipnode_default_script_name',''));
+   $form['voipnode']['voipnode_settings']['voipnode_default_script_name'] = array(
+     '#type' => 'select',
+     '#title' => t('Default Script Name'),
+-    '#options' => voipnode_valid_script_names(t('Site default')),
++    '#options' => variable_get('voipnode_valid_script_names', VoipScript::getScriptNames()),
+     '#default_value' => $default_script_name,
+   );
+ 
+-  $default_extension_status = voipnode_default_status($content_type);
++  $default_extension_status = variable_get('voipnode_default_extension_status_'. $content_type, variable_get('voipnode_default_extension_status', 0));
+   $form['voipnode']['voipnode_settings']['voipnode_default_extension_status'] = array(
+     '#type' => 'radios',
+     '#title' => t('Default Extension status'),
+     '#options' => array(1 => t('Listed in extension directories'), 0 => t('Not listed')),
+-    '#default_value' => $default_extension_status,
++    '#default_value' => $default_extension_status ? $default_extension_status : 0
+   );
+ 
+   if (variable_get('voipnode_use_'. $content_type, FALSE)) {
+diff --git a/sites/all/modules/voipnode/voipnode.admin.js b/sites/all/modules/voipnode/voipnode.admin.js
+index 8e3c441..1af913d 100644
+--- a/sites/all/modules/voipnode/voipnode.admin.js
++++ b/sites/all/modules/voipnode/voipnode.admin.js
+@@ -1,9 +1,10 @@
+ // hide disabled scripts from admin options form
+-Drupal.behaviors.voipnodeAdminOptions = function (context) {
++Drupal.behaviors.voipnodeAdminOptions = {
++	attach: function(context) {
+   $('select#edit-voipnode-default-script-name option').each(function() {
+     var $thisOption = $(this);
+     var $thisValue = this.value;
+-    var $thisCheckBox = $('input[@value='+$thisValue+']');
++    var $thisCheckBox = $('input[value='+$thisValue+']');
+     if (! $thisCheckBox.is(':checked')) {
+       $thisOption.hide();
+       $thisOption.removeAttr('selected');
+diff --git a/sites/all/modules/voipnode/voipnode.cck_fields.inc b/sites/all/modules/voipnode/voipnode.cck_fields.inc
+index 35af6e5..9325f63 100644
+--- a/sites/all/modules/voipnode/voipnode.cck_fields.inc
++++ b/sites/all/modules/voipnode/voipnode.cck_fields.inc
+@@ -22,10 +22,21 @@
+ function _voipnode_change_audio_fields_status($node_type, $status = 1) {
+   $fields = _voipnode_audio_fields_definitions();
+   foreach ($fields as $key => $field) {
+-    db_query("UPDATE {". content_field_tablename() ."} SET active = %d WHERE field_name = '%s' AND module = '%s'", $status, $field['field_name'], 'filefield');
+-    db_query("UPDATE {". content_instance_tablename() ."} SET widget_active = %d WHERE field_name = '%s' AND type_name = '%s' AND widget_module = '%s'", $status, $field['field_name'], $node_type, 'audiofield');
++    db_update('field_config')
++  ->fields(array('active' => 1))
++  ->condition('field_name',$field['field_name'])
++  ->condition('module' , filefield)
++  ->execute();
++/**
++  db_update('field_config_instance')
++  ->fields(array('widget_active' => 1))
++  ->condition('field_name',$field['field_name'])
++  ->condition('type_name' , $node_type)
++  ->condition('widget_module',  audiofield)
++  ->execute();
++  */
+   }
+-  content_clear_type_cache(TRUE);
++   field_cache_clear();
+ } 
+ 
+ /**
+diff --git a/sites/all/modules/voipnode/voipnode.info b/sites/all/modules/voipnode/voipnode.info
+index 0e33f1e..eaef0cc 100644
+--- a/sites/all/modules/voipnode/voipnode.info
++++ b/sites/all/modules/voipnode/voipnode.info
+@@ -1,17 +1,25 @@
+ name = VoIP Node
+ package = VoIP Drupal
+ description = Provides VoIP Extensions to CCK content types
+-dependencies[] = content
++;dependencies[] = cck
+ dependencies[] = audiofield
+-dependencies[] = fieldgroup
+ dependencies[] = views
+ dependencies[] = voipcall
+ dependencies[] = voipextension
+-core = 6.x
++core = 7.x
++files[]= voipnode.admin.inc
++files[]= voipnode.admin.js
++files[]= voipnode.cck_filds.inc
++files[]= voipnode.install
++files[]= voipnode.module
++files[]= voipnode.script.inc
++files[]= views/voipnode.theme.inc
++files[]= views/voipnode.views.inc
++files[]= views/voipnode.views_default.inc
+ 
+-; Information added by drupal.org packaging script on 2012-02-29
+-version = "6.x-1.0-beta1+2-dev"
+-core = "6.x"
++; Information added by drupal.org packaging script on 2012-02-23
++version = "7.x-1.0-beta1"
++core = "7.x"
+ project = "voipnode"
+-datestamp = "1330476375"
++datestamp = "1329975347"
+ 
+diff --git a/sites/all/modules/voipnode/voipnode.install b/sites/all/modules/voipnode/voipnode.install
+index 8c5e33e..c7b1426 100644
+--- a/sites/all/modules/voipnode/voipnode.install
++++ b/sites/all/modules/voipnode/voipnode.install
+@@ -14,7 +14,7 @@ function voipnode_uninstall() {
+   variable_del('voipnode_valid_script_names');
+   variable_del('voipnode_default_script_name');
+   variable_del('voipnode_default_extension_status');
+-  $node_types = node_get_types();
++  $node_types = node_type_get_types();
+   foreach ($node_types as $node_type => $type_details) {
+     variable_del('voipnode_use_' . $node_type);
+     variable_del('voipnode_default_script_name_' . $node_type);
+diff --git a/sites/all/modules/voipnode/voipnode.module b/sites/all/modules/voipnode/voipnode.module
+index f34014a..4a07dea 100644
+--- a/sites/all/modules/voipnode/voipnode.module
++++ b/sites/all/modules/voipnode/voipnode.module
+@@ -42,7 +42,7 @@ function voipnode_menu() {
+  */
+ function voipnode_menu_alter(&$items) {
+   module_load_include('inc', 'voipnode', 'voipnode.cck_fields');
+-  $node_types = node_get_types();
++  $node_types = node_type_get_types();
+ 
+   foreach ($node_types as $node_type => $node_type_details) {
+     foreach (_voipnode_audio_fields_names() as $field_name) {
+@@ -63,19 +63,17 @@ function voipnode_menu_alter(&$items) {
+ /**
+  * Implementation of hook_perm().
+  */
+-function voipnode_perm() {
++function voipnode_permission() {
+   return array(
+     'administer voipnode settings',
+   );
+ }
+ 
+ /**
+- * Implementation of hook_nodeapi().
+- *
+- * Handles adding, changing, removing extensions for voipnodes.
++ * Implements hook_node_update().
+  */
+-function voipnode_nodeapi(&$node, $op, $a3 = NULL, $a4 = NULL) {
+-  if (! variable_get('voipnode_use_' . $node->type, FALSE)) {
++function voipnode_node_update($node) {
++if (! variable_get('voipnode_use_' . $node->type, FALSE)) {
+     // @todo we have no handling for switching off node types
+     //       for now we don't deal with the extension here, unless
+     //       the node is being deleted.
+@@ -83,11 +81,7 @@ function voipnode_nodeapi(&$node, $op, $a3 = NULL, $a4 = NULL) {
+       return;
+     }
+   }
+-
+-  switch ($op) {
+-    case 'insert':
+-    case 'update':
+-      $extension = array(
++  $extension = array(
+         'title' => $node->title,
+         'title_callback' => 'voipnode_voipextension_title_callback',
+         'description_callback' => 'voipnode_voipextension_description_callback',
+@@ -110,21 +104,35 @@ function voipnode_nodeapi(&$node, $op, $a3 = NULL, $a4 = NULL) {
+       }
+       $node->voipextension_number = $extension['eid'];
+       return;
+-    case 'load':
+-      $extension = voipextension_load_by_module_id('voipnode', $node->nid);
++}
++/**
++ * Implements hook_node_insert().
++ */
++function voipnode_node_insert($node) {
++  voipnode_node_update($node);
++}
++
++/**
++ * Implements hook_node_load().
++ */
++function voipnode_node_load($nodes, $types) {
++  $extension = voipextension_load_by_module_id('voipnode', $node->nid);
+       $node->voipextension_script = $extension['script'];
+       $node->voipextension_number = $extension['eid'];
+       $node->voipextension_number_original = $extension['eid'];
+       $node->voipextension_listed = $extension['directory_type'];
+       return;
+-    case 'delete':
+-      if (empty($node->extension_number)) {
++}
++/**
++ * Implements hook_node_delete().
++ */
++function voipnode_node_delete($node) {
++  if (empty($node->extension_number)) {
+         $extension = voipextension_load_by_module_id('voipnode', $node->nid);
+         $node->extension_number = $extension['eid'];
+       }
+       voipextension_delete($node->extension_number);
+       return;
+-  }
+ }
+ 
+ /**

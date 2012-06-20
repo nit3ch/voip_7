@@ -16,20 +16,20 @@ function voipnode_admin_settings() {
     '#type' => 'checkboxes',
     '#options' => VoipScript::getScriptNames(),
     '#default_value' => variable_get('voipnode_valid_script_names', array()),
-    '#description' => t('Scripts that will be available for VoIP nodes. You can select multiple scripts. If none are selected all will be available.'),
+    '#description' => t('Scripts that will be available for VoIP nodes. You can select multiple scripts.'),
   );
   $form['voipnode_default_script_name'] = array(
     '#title' => t('Default script'),
     '#type' => 'select',
     '#options' => VoipScript::getScriptNames(),
-    '#default_value' => voipnode_default_script(FALSE, TRUE),
+    '#default_value' => variable_get('voipnode_default_script_name', ''),
     '#description' => t('The script, of those valid, that will be used by default.'),
   );
   $form['voipnode_default_extension_status'] = array(
     '#type' => 'checkbox',
     '#title' => t('Listed'),
     '#description' => t('The default setting for if the extension is listed in a directory.'),
-    '#default_value' => voipnode_default_status(),
+    '#default_value' => variable_get('voipnode_default_extension_status', 0),
     '#return_value' => 1,
   );
   $form['array_filter'] = array('#type' => 'hidden');
@@ -56,7 +56,7 @@ function voipnode_admin_settings_submit(&$form, &$form_state) {
  * Menu callback; confirmation form for reindexing extensions to nodes by content-type.
  */
 function voipnode_admin_reindex_confirm_form($form_state) {
-  $types = node_get_types();
+  $types = node_type_get_types();
   $options = array();
   foreach ($types as $node_type => $type_details) {
     if (variable_get('voipnode_use_' . $node_type, FALSE)) {
@@ -125,9 +125,9 @@ function _voipnode_admin_reindex_batch($content_type, &$context) {
   $result = db_query_range("SELECT nid FROM {node} WHERE nid > %d AND type = '%s' ORDER BY nid ASC", $context['sandbox']['current_node'], $content_type, 0, $limit);
   while ($row = db_fetch_array($result)) {
     $node = node_load($row['nid'], NULL, TRUE);
-    $node->voipextension_listed = voipnode_default_status($content_type);
-    $node->voipextension_script = voipnode_default_script($content_type, TRUE);
-    // We only need our part of the hook_nodeapi.
+    $node->voipextension_listed = variable_get('voipnode_default_extension_status_'. $content_type, variable_get('voipnode_default_extension_status', 0));
+    $node->voipextension_script = variable_get('voipnode_default_script_name_'. $content_type, variable_get('voipnode_default_script_name',''));
+    // we only need our part of the hook_nodeapi
     voipnode_nodeapi($node, 'update');
     $context['sandbox']['progress']++;
     $context['sandbox']['current_node'] = $row['nid'];
@@ -207,20 +207,20 @@ function _voipnode_form_node_type_form_alter(&$form, &$form_state) {
     ),
   );
 
-  $default_script_name = voipnode_default_script($content_type, TRUE);
+  $default_script_name = variable_get('voipnode_default_script_name_'. $content_type, variable_get('voipnode_default_script_name',''));
   $form['voipnode']['voipnode_settings']['voipnode_default_script_name'] = array(
     '#type' => 'select',
     '#title' => t('Default Script Name'),
-    '#options' => voipnode_valid_script_names(t('Site default')),
+    '#options' => variable_get('voipnode_valid_script_names', VoipScript::getScriptNames()),
     '#default_value' => $default_script_name,
   );
 
-  $default_extension_status = voipnode_default_status($content_type);
+  $default_extension_status = variable_get('voipnode_default_extension_status_'. $content_type, variable_get('voipnode_default_extension_status', 0));
   $form['voipnode']['voipnode_settings']['voipnode_default_extension_status'] = array(
     '#type' => 'radios',
     '#title' => t('Default Extension status'),
     '#options' => array(1 => t('Listed in extension directories'), 0 => t('Not listed')),
-    '#default_value' => $default_extension_status,
+    '#default_value' => $default_extension_status ? $default_extension_status : 0
   );
 
   if (variable_get('voipnode_use_'. $content_type, FALSE)) {
@@ -272,7 +272,7 @@ function _voipnode_form_node_type_form_submit($form, &$form_state) {
     // Using the admin task existing disabled extensions can all be defaulted to enabled.
     _voipnode_change_audio_fields_status($content_type, 1);
     $group = _voipnode_extension_group_defintion();
-    fieldgroup_save_group($content_type, $group);
+    ctools_export_crud_save($content_type, $group);
     _voipnode_create_audio_fields($content_type);
     $group_name = 'group_voipnode_settings';
     $fields = array(
@@ -286,7 +286,7 @@ function _voipnode_form_node_type_form_submit($form, &$form_state) {
       $form_values['type_name']  = $content_type;
       $form_values['group']      = $group_name;
       $form_values['field_name'] = $field_name;
-      fieldgroup_update_fields($form_values);
+      ctools_export_crud_save($form_values);
     }
 
     drupal_set_message(t('VoIP Extension field have been associated with %content_type', array('%content_type' => $content_type)));

@@ -22,10 +22,21 @@
 function _voipnode_change_audio_fields_status($node_type, $status = 1) {
   $fields = _voipnode_audio_fields_definitions();
   foreach ($fields as $key => $field) {
-    db_query("UPDATE {". content_field_tablename() ."} SET active = %d WHERE field_name = '%s' AND module = '%s'", $status, $field['field_name'], 'filefield');
-    db_query("UPDATE {". content_instance_tablename() ."} SET widget_active = %d WHERE field_name = '%s' AND type_name = '%s' AND widget_module = '%s'", $status, $field['field_name'], $node_type, 'audiofield');
+    db_update('field_config')
+  ->fields(array('active' => 1))
+  ->condition('field_name',$field['field_name'])
+  ->condition('module' , filefield)
+  ->execute();
+/**
+  db_update('field_config_instance')
+  ->fields(array('widget_active' => 1))
+  ->condition('field_name',$field['field_name'])
+  ->condition('type_name' , $node_type)
+  ->condition('widget_module',  audiofield)
+  ->execute();
+  */
   }
-  content_clear_type_cache(TRUE);
+   field_cache_clear();
 } 
 
 /**
@@ -36,13 +47,13 @@ function _voipnode_change_audio_fields_status($node_type, $status = 1) {
  */
 function _voipnode_create_audio_fields($node_type) {
   // Need to load the CCK include file where content_field_instance_create() is defined.
-  module_load_include('inc', 'content', 'includes/content.crud');
+  module_load_include('inc', 'field', 'field.crud');
 
   $fields_to_create = _voipnode_audio_fields_definitions();
   foreach ($fields_to_create as $key => $field) {
-    if (!content_fields($field['field_name'], $node_type)) {
+    if (!field_info_fields($field['field_name'], $node_type)) {
       $field['type_name'] = $node_type;
-      content_field_instance_create($field);
+      field_create_instance($field);
     }
   }
 } 

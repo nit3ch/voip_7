@@ -1,9 +1,10 @@
 // hide disabled scripts from admin options form
-Drupal.behaviors.voipnodeAdminOptions = function (context) {
+Drupal.behaviors.voipnodeAdminOptions = {
+	attach: function(context) {
   $('select#edit-voipnode-default-script-name option').each(function() {
     var $thisOption = $(this);
     var $thisValue = this.value;
-    var $thisCheckBox = $('input[@value='+$thisValue+']');
+    var $thisCheckBox = $('input[value='+$thisValue+']');
     if (! $thisCheckBox.is(':checked')) {
       $thisOption.hide();
       $thisOption.removeAttr('selected');

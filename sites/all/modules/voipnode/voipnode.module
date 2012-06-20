@@ -42,7 +42,7 @@ function voipnode_menu() {
  */
 function voipnode_menu_alter(&$items) {
   module_load_include('inc', 'voipnode', 'voipnode.cck_fields');
-  $node_types = node_get_types();
+  $node_types = node_type_get_types();
 
   foreach ($node_types as $node_type => $node_type_details) {
     foreach (_voipnode_audio_fields_names() as $field_name) {
@@ -63,19 +63,17 @@ function voipnode_menu_alter(&$items) {
 /**
  * Implementation of hook_perm().
  */
-function voipnode_perm() {
+function voipnode_permission() {
   return array(
     'administer voipnode settings',
   );
 }
 
 /**
- * Implementation of hook_nodeapi().
- *
- * Handles adding, changing, removing extensions for voipnodes.
+ * Implements hook_node_update().
  */
-function voipnode_nodeapi(&$node, $op, $a3 = NULL, $a4 = NULL) {
-  if (! variable_get('voipnode_use_' . $node->type, FALSE)) {
+function voipnode_node_update($node) {
+if (! variable_get('voipnode_use_' . $node->type, FALSE)) {
     // @todo we have no handling for switching off node types
     //       for now we don't deal with the extension here, unless
     //       the node is being deleted.
@@ -83,11 +81,7 @@ function voipnode_nodeapi(&$node, $op, $a3 = NULL, $a4 = NULL) {
       return;
     }
   }
-
-  switch ($op) {
-    case 'insert':
-    case 'update':
-      $extension = array(
+  $extension = array(
         'title' => $node->title,
         'title_callback' => 'voipnode_voipextension_title_callback',
         'description_callback' => 'voipnode_voipextension_description_callback',
@@ -110,21 +104,35 @@ function voipnode_nodeapi(&$node, $op, $a3 = NULL, $a4 = NULL) {
       }
       $node->voipextension_number = $extension['eid'];
       return;
-    case 'load':
-      $extension = voipextension_load_by_module_id('voipnode', $node->nid);
+}
+/**
+ * Implements hook_node_insert().
+ */
+function voipnode_node_insert($node) {
+  voipnode_node_update($node);
+}
+
+/**
+ * Implements hook_node_load().
+ */
+function voipnode_node_load($nodes, $types) {
+  $extension = voipextension_load_by_module_id('voipnode', $node->nid);
       $node->voipextension_script = $extension['script'];
       $node->voipextension_number = $extension['eid'];
       $node->voipextension_number_original = $extension['eid'];
       $node->voipextension_listed = $extension['directory_type'];
       return;
-    case 'delete':
-      if (empty($node->extension_number)) {
+}
+/**
+ * Implements hook_node_delete().
+ */
+function voipnode_node_delete($node) {
+  if (empty($node->extension_number)) {
         $extension = voipextension_load_by_module_id('voipnode', $node->nid);
         $node->extension_number = $extension['eid'];
       }
       voipextension_delete($node->extension_number);
       return;
-  }
 }
 
 /**
